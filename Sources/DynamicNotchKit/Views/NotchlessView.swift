@@ -44,31 +44,42 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     }
 
     private func notchContent() -> some View {
-        ZStack(alignment: .top) {
+        VStack(spacing: 0) {
+            // Show compact indicators row in hybrid mode
+            if dynamicNotch.isHybridModeEnabled {
+                compactIndicatorsRow()
+            }
+
             dynamicNotch.expandedContent
                 .transition(.blur(intensity: 10).combined(with: .opacity))
-                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
+                // Only add top inset when NOT in hybrid mode (indicators row provides spacing)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    Color.clear.frame(height: dynamicNotch.isHybridModeEnabled ? 0 : safeAreaInset)
+                }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
                 .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
                 .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
-
-            // Overlay compact indicators at top corners in hybrid mode
-            if dynamicNotch.isHybridModeEnabled {
-                compactIndicatorsOverlay()
-            }
         }
         .fixedSize()
     }
 
-    /// Compact indicators overlaid at top corners in hybrid mode
+    /// Row with compact indicators and optional center content for hybrid mode.
+    /// The center content is only visible in floating mode (hidden by notch in notch mode).
     @ViewBuilder
-    private func compactIndicatorsOverlay() -> some View {
+    private func compactIndicatorsRow() -> some View {
         HStack(spacing: 0) {
             if !dynamicNotch.disableCompactLeading {
                 dynamicNotch.compactLeadingContent
                     .environment(\.notchSection, .compactLeading)
                     .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .trailing)).combined(with: .opacity))
             }
+
+            Spacer()
+
+            // Center content - visible in floating fallback, hidden by notch in notch mode
+            dynamicNotch.compactCenterContent
+                .environment(\.notchSection, .compactCenter)
+                .transition(.blur(intensity: 10).combined(with: .opacity))
 
             Spacer()
 
@@ -79,6 +90,6 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             }
         }
         .padding(.horizontal, safeAreaInset)
-        .padding(.top, safeAreaInset)
+        .padding(.vertical, 10)
     }
 }

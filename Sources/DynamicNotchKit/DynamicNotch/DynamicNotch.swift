@@ -76,6 +76,10 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     @Published var disableCompactLeading: Bool = false
     @Published var disableCompactTrailing: Bool = false
 
+    /// Center content shown in floating fallback mode (hidden by notch in notch mode).
+    /// Set this to display a title or other UI between the leading and trailing indicators.
+    @Published public var compactCenterContent: AnyView = AnyView(EmptyView())
+
     /// When `true`, compact leading and trailing content remain visible in the expanded state,
     /// allowing "hybrid" layouts where indicators appear alongside the notch while expanded content
     /// shows below. Defaults to `false` for backwards compatibility.
@@ -294,6 +298,9 @@ extension DynamicNotch {
             completion?()
             return
         }
+
+        // Reset floating hybrid mode flag so it doesn't persist across show/hide cycles
+        floatingHybridModeActive = false
 
         if hoverBehavior.contains(.keepVisible), isHovering {
             Task {
