@@ -268,4 +268,54 @@ struct DynamicNotchKitTests {
             await notch.hide()
         }
     }
+
+    // MARK: - Hybrid Mode (Compact Content in Expanded State)
+
+    @Test("DynamicNotch - Hybrid mode with compact indicators (notch style)", .tags(.notchStyle))
+    func dynamicNotchHybridModeNotchStyle() async throws {
+        try await _dynamicNotchHybridMode(with: .notch)
+    }
+
+    @Test("DynamicNotch - Hybrid mode with floating style", .tags(.floatingStyle))
+    func dynamicNotchHybridModeFloatingStyle() async throws {
+        // Note: Floating style does not support compact mode, so hybrid mode
+        // effectively shows only expanded content (compact indicators are not displayed).
+        // This test verifies the feature degrades gracefully on non-notch devices.
+        try await _dynamicNotchHybridMode(with: .floating)
+    }
+
+    func _dynamicNotchHybridMode(with style: DynamicNotchStyle) async throws {
+        let notch = DynamicNotch(
+            style: style,
+            showCompactContentInExpandedMode: true
+        ) {
+            VStack(spacing: 8) {
+                Text("Hybrid Layout Demo")
+                    .font(.headline)
+                Text("Compact indicators remain visible alongside expanded content.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } compactLeading: {
+            Image(systemName: "waveform")
+                .foregroundStyle(.green)
+        } compactTrailing: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.red)
+        }
+
+        await notch.expand()
+        try await Task.sleep(for: .seconds(3))
+
+        // Transition to compact to show indicators still work normally
+        // Note: On floating style, this will hide the window (compact not supported)
+        await notch.compact()
+        try await Task.sleep(for: .seconds(2))
+
+        // Back to expanded hybrid mode
+        await notch.expand()
+        try await Task.sleep(for: .seconds(2))
+
+        await notch.hide()
+    }
 }

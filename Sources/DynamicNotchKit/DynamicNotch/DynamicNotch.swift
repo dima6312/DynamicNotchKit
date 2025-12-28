@@ -75,6 +75,11 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     @Published var disableCompactLeading: Bool = false
     @Published var disableCompactTrailing: Bool = false
 
+    /// When `true`, compact leading and trailing content remain visible in the expanded state,
+    /// allowing "hybrid" layouts where indicators appear alongside the notch while expanded content
+    /// shows below. Defaults to `false` for backwards compatibility.
+    @Published public var showCompactContentInExpandedMode: Bool = false
+
     /// Notch Properties
     @Published private(set) var state: DynamicNotchState = .hidden
     @Published private(set) var notchSize: CGSize = .zero
@@ -87,18 +92,21 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// - Parameters:
     ///   - hoverBehavior: defines the hover behavior of the notch, which allows for different interactions such as haptic feedback, increased shadow etc.
     ///   - style: the popover's style. If unspecified, the style will be automatically set according to the screen (notch or floating).
+    ///   - showCompactContentInExpandedMode: when `true`, compact content remains visible in expanded state for hybrid layouts.
     ///   - expanded: a SwiftUI View to be shown in the expanded state of the notch.
     ///   - compactLeading: a SwiftUI View to be shown in the compact leading state of the notch.
     ///   - compactTrailing: a SwiftUI View to be shown in the compact trailing state of the notch.
     public init(
         hoverBehavior: DynamicNotchHoverBehavior = .all,
         style: DynamicNotchStyle = .auto,
+        showCompactContentInExpandedMode: Bool = false,
         @ViewBuilder expanded: @escaping () -> Expanded,
         @ViewBuilder compactLeading: @escaping () -> CompactLeading = { EmptyView() },
         @ViewBuilder compactTrailing: @escaping () -> CompactTrailing = { EmptyView() }
     ) {
         self.hoverBehavior = hoverBehavior
         self.style = style
+        self.showCompactContentInExpandedMode = showCompactContentInExpandedMode
 
         self.expandedContent = expanded()
         self.compactLeadingContent = compactLeading()
@@ -277,7 +285,10 @@ extension DynamicNotch {
         closePanelTask?.cancel()
         closePanelTask = Task {
             try? await Task.sleep(for: .seconds(0.4)) // Wait for animation to complete
-            guard Task.isCancelled != true else { return }
+            guard Task.isCancelled != true else {
+                completion?() // Always resume continuation to prevent leak
+                return
+            }
             deinitializeWindow()
             completion?()
         }

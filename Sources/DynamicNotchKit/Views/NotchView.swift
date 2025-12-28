@@ -76,16 +76,17 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
             .animation(.smooth, value: [compactLeadingWidth, compactTrailingWidth])
     }
 
+    /// Builds the main notch content layout.
+    ///
+    /// Layout behavior:
+    /// - **Normal mode**: Compact content collapses to notch width in expanded state
+    /// - **Hybrid mode** (`showCompactContentInExpandedMode`): Compact content remains visible,
+    ///   filling the width of the expanded content with symmetric left/right positioning
     private func notchContent() -> some View {
-        ZStack {
-            compactContent()
-                .fixedSize()
-                .offset(x: dynamicNotch.state == .compact ? 0 : compactXOffset)
-                .frame(
-                    width: dynamicNotch.state == .compact ? nil : dynamicNotch.notchSize.width,
-                    height: (dynamicNotch.state == .compact && dynamicNotch.isHovering) ? dynamicNotch.menubarHeight : dynamicNotch.notchSize.height
-                )
+        let showCompactInExpanded = dynamicNotch.showCompactContentInExpandedMode
+        let useHybridLayout = showCompactInExpanded && dynamicNotch.state == .expanded
 
+        return ZStack(alignment: .top) {
             expandedContent()
                 .fixedSize()
                 .frame(
@@ -93,6 +94,15 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
                     maxHeight: dynamicNotch.state == .expanded ? nil : 0
                 )
                 .offset(x: dynamicNotch.state == .compact ? -compactXOffset : 0)
+
+            compactContent()
+                .fixedSize(horizontal: !useHybridLayout, vertical: true)
+                .frame(maxWidth: useHybridLayout ? .infinity : nil)
+                .offset(x: dynamicNotch.state == .compact ? 0 : compactXOffset)
+                .frame(
+                    width: (dynamicNotch.state == .compact || showCompactInExpanded) ? nil : dynamicNotch.notchSize.width,
+                    height: (dynamicNotch.state == .compact && dynamicNotch.isHovering) ? dynamicNotch.menubarHeight : dynamicNotch.notchSize.height
+                )
         }
         .padding(.horizontal, topCornerRadius)
         .fixedSize()
@@ -100,29 +110,50 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         .onHover(perform: dynamicNotch.updateHoverState)
     }
 
+    /// Builds compact leading/trailing content.
+    ///
+    /// Visibility states:
+    /// - **Normal mode**: Visible only in `.compact` state
+    /// - **Hybrid mode**: Visible in both `.compact` and `.expanded` states
+    ///
+    /// Layout modes:
+    /// - **Normal**: Content hugs edges with 8pt padding
+    /// - **Symmetric** (hybrid + expanded): Equal-width containers centered around notch with 15pt padding
     func compactContent() -> some View {
-        HStack(spacing: 0) {
-            if dynamicNotch.state == .compact, !dynamicNotch.disableCompactLeading {
-                dynamicNotch.compactLeadingContent
-                    .environment(\.notchSection, .compactLeading)
-                    .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: 8) }
-                    .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
-                    .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
-                    .onGeometryChange(for: CGFloat.self, of: \.size.width) { compactLeadingWidth = $0 }
-                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .trailing)).combined(with: .opacity))
+        // In hybrid mode, show compact content in both compact AND expanded states
+        // In normal mode, only show in compact state
+        let showContent = dynamicNotch.showCompactContentInExpandedMode
+            ? dynamicNotch.state != .hidden
+            : dynamicNotch.state == .compact
+
+        // Symmetric layout creates equal-width containers on each side of the notch
+        // This ensures compact indicators are centered within their respective halves
+        let useSymmetricLayout = dynamicNotch.showCompactContentInExpandedMode && dynamicNotch.state == .expanded
+
+        return HStack(spacing: 0) {
+            if showContent, !dynamicNotch.disableCompactLeading {
+                compactSideContent(
+                    content: dynamicNotch.compactLeadingContent,
+                    section: .compactLeading,
+                    edge: .leading,
+                    scaleAnchor: .trailing,
+                    useSymmetricLayout: useSymmetricLayout,
+                    widthBinding: $compactLeadingWidth
+                )
             }
 
             Spacer()
                 .frame(width: dynamicNotch.notchSize.width)
 
-            if dynamicNotch.state == .compact, !dynamicNotch.disableCompactTrailing {
-                dynamicNotch.compactTrailingContent
-                    .environment(\.notchSection, .compactTrailing)
-                    .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: 8) }
-                    .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
-                    .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
-                    .onGeometryChange(for: CGFloat.self, of: \.size.width) { compactTrailingWidth = $0 }
-                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .leading)).combined(with: .opacity))
+            if showContent, !dynamicNotch.disableCompactTrailing {
+                compactSideContent(
+                    content: dynamicNotch.compactTrailingContent,
+                    section: .compactTrailing,
+                    edge: .trailing,
+                    scaleAnchor: .leading,
+                    useSymmetricLayout: useSymmetricLayout,
+                    widthBinding: $compactTrailingWidth
+                )
             }
         }
         .frame(height: dynamicNotch.notchSize.height)
@@ -150,5 +181,45 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
         .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
         .frame(minWidth: dynamicNotch.notchSize.width)
+    }
+
+    /// Helper to build a single side (leading or trailing) of compact content.
+    ///
+    /// - Parameters:
+    ///   - content: The view to display
+    ///   - section: Environment value for the notch section
+    ///   - edge: Which edge this content is on (.leading or .trailing)
+    ///   - scaleAnchor: Anchor point for the scale animation
+    ///   - useSymmetricLayout: Whether to use equal-width containers (hybrid expanded mode)
+    ///   - widthBinding: Binding to track the content width for offset calculations
+    @ViewBuilder
+    private func compactSideContent<Content: View>(
+        content: Content,
+        section: DynamicNotchSection,
+        edge: HorizontalEdge,
+        scaleAnchor: UnitPoint,
+        useSymmetricLayout: Bool,
+        widthBinding: Binding<CGFloat>
+    ) -> some View {
+        let edgePadding: CGFloat = useSymmetricLayout ? safeAreaInset : 8
+
+        Group {
+            if useSymmetricLayout {
+                // Equal-width container with content aligned to outer edge
+                HStack(spacing: 0) {
+                    if edge == .trailing { Spacer(minLength: 0) }
+                    content.environment(\.notchSection, section)
+                    if edge == .leading { Spacer(minLength: 0) }
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                content.environment(\.notchSection, section)
+            }
+        }
+        .safeAreaInset(edge: edge, spacing: 0) { Color.clear.frame(width: edgePadding) }
+        .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
+        .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
+        .onGeometryChange(for: CGFloat.self, of: \.size.width) { widthBinding.wrappedValue = $0 }
+        .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: scaleAnchor)).combined(with: .opacity))
     }
 }
