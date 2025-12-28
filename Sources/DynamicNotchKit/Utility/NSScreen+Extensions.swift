@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension NSScreen {
+public extension NSScreen {
     static var screenWithMouse: NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
         let screens = NSScreen.screens
