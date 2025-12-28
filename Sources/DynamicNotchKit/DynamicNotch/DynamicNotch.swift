@@ -213,7 +213,10 @@ extension DynamicNotch {
         guard state != .compact else { return }
 
         if effectiveStyle(for: screen).isFloating {
-            await hide()
+            // Floating mode has no physical notch to flank with compact content.
+            // Instead, expand with hybrid mode to show compact indicators alongside content.
+            showCompactContentInExpandedMode = true
+            await _expand(on: screen, skipHide: skipHide)
             return
         }
 
