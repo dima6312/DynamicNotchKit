@@ -44,14 +44,41 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     }
 
     private func notchContent() -> some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
             dynamicNotch.expandedContent
                 .transition(.blur(intensity: 10).combined(with: .opacity))
                 .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
                 .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
                 .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
+
+            // Overlay compact indicators at top corners in hybrid mode
+            if dynamicNotch.isHybridModeEnabled {
+                compactIndicatorsOverlay()
+            }
         }
         .fixedSize()
+    }
+
+    /// Compact indicators overlaid at top corners in hybrid mode
+    @ViewBuilder
+    private func compactIndicatorsOverlay() -> some View {
+        HStack(spacing: 0) {
+            if !dynamicNotch.disableCompactLeading {
+                dynamicNotch.compactLeadingContent
+                    .environment(\.notchSection, .compactLeading)
+                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .trailing)).combined(with: .opacity))
+            }
+
+            Spacer()
+
+            if !dynamicNotch.disableCompactTrailing {
+                dynamicNotch.compactTrailingContent
+                    .environment(\.notchSection, .compactTrailing)
+                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .leading)).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, safeAreaInset)
+        .padding(.top, safeAreaInset)
     }
 }

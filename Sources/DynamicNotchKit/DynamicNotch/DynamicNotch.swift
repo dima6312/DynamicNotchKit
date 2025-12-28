@@ -24,8 +24,9 @@ import SwiftUI
 /// ### Compact State
 /// In the compact state, there is the leading content, which is shown on the left side of the notch, and the trailing content, which is shown on the right side of the notch.
 ///
-/// > When using the `floating` style, this framework does not support compact mode.
-/// > Calling ``compact(on:)`` on these devices will automatically hide the window.
+/// > When using the `floating` style, there is no physical notch to flank with compact content.
+/// > Calling ``compact(on:)`` on these devices will expand with hybrid mode enabled,
+/// > showing compact indicators alongside the expanded content for a consistent UX across all Macs.
 ///
 /// ## Usage
 ///
@@ -79,6 +80,15 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// allowing "hybrid" layouts where indicators appear alongside the notch while expanded content
     /// shows below. Defaults to `false` for backwards compatibility.
     @Published public var showCompactContentInExpandedMode: Bool = false
+
+    /// Internal flag set when floating mode auto-enables hybrid layout.
+    /// This avoids mutating the user-facing `showCompactContentInExpandedMode` property.
+    @Published var floatingHybridModeActive: Bool = false
+
+    /// Whether hybrid mode is effectively enabled (user setting OR floating fallback).
+    var isHybridModeEnabled: Bool {
+        showCompactContentInExpandedMode || floatingHybridModeActive
+    }
 
     /// Notch Properties
     @Published private(set) var state: DynamicNotchState = .hidden
@@ -215,7 +225,20 @@ extension DynamicNotch {
         if effectiveStyle(for: screen).isFloating {
             // Floating mode has no physical notch to flank with compact content.
             // Instead, expand with hybrid mode to show compact indicators alongside content.
-            showCompactContentInExpandedMode = true
+            // Use internal flag to avoid mutating user-configured showCompactContentInExpandedMode.
+
+            // If already expanded, just enable hybrid mode with animation and return
+            if state == .expanded {
+                Task { @MainActor in
+                    withAnimation(style.conversionAnimation) {
+                        floatingHybridModeActive = true
+                    }
+                }
+                return
+            }
+
+            // Otherwise, enable hybrid mode and expand
+            floatingHybridModeActive = true
             await _expand(on: screen, skipHide: skipHide)
             return
         }
@@ -288,10 +311,7 @@ extension DynamicNotch {
         closePanelTask?.cancel()
         closePanelTask = Task {
             try? await Task.sleep(for: .seconds(0.4)) // Wait for animation to complete
-            guard Task.isCancelled != true else {
-                completion?() // Always resume continuation to prevent leak
-                return
-            }
+            // Always cleanup and resume continuation, even on cancellation
             deinitializeWindow()
             completion?()
         }

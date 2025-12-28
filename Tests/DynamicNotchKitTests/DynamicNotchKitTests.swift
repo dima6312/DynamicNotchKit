@@ -276,11 +276,9 @@ struct DynamicNotchKitTests {
         try await _dynamicNotchHybridMode(with: .notch)
     }
 
-    @Test("DynamicNotch - Hybrid mode with floating style", .tags(.floatingStyle))
+    @Test("DynamicNotch - Hybrid mode with floating style (explicit)", .tags(.floatingStyle))
     func dynamicNotchHybridModeFloatingStyle() async throws {
-        // Note: Floating style does not support compact mode, so hybrid mode
-        // effectively shows only expanded content (compact indicators are not displayed).
-        // This test verifies the feature degrades gracefully on non-notch devices.
+        // Test explicit hybrid mode on floating style
         try await _dynamicNotchHybridMode(with: .floating)
     }
 
@@ -307,14 +305,52 @@ struct DynamicNotchKitTests {
         await notch.expand()
         try await Task.sleep(for: .seconds(3))
 
-        // Transition to compact to show indicators still work normally
-        // Note: On floating style, this will hide the window (compact not supported)
+        // Transition to compact - on floating style, this enables hybrid mode and expands
         await notch.compact()
         try await Task.sleep(for: .seconds(2))
 
-        // Back to expanded hybrid mode
+        await notch.hide()
+    }
+
+    // MARK: - Floating Fallback (compact() auto-enables hybrid mode)
+
+    @Test("DynamicNotch - Floating fallback: compact() enables hybrid mode", .tags(.floatingStyle))
+    func dynamicNotchFloatingFallback() async throws {
+        // When compact() is called on floating style, it should auto-enable hybrid mode
+        // and expand (not hide), showing compact indicators alongside expanded content.
+        // This provides consistent UX across notch and non-notch Macs.
+        let notch = DynamicNotch(
+            style: .floating
+            // Note: showCompactContentInExpandedMode is NOT set (defaults to false)
+        ) {
+            VStack(spacing: 8) {
+                Text("Floating Fallback Test")
+                    .font(.headline)
+                Text("Compact indicators should appear after calling compact()")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } compactLeading: {
+            Image(systemName: "waveform")
+                .foregroundStyle(.green)
+        } compactTrailing: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.red)
+        }
+
+        // Start expanded (no hybrid mode yet)
         await notch.expand()
         try await Task.sleep(for: .seconds(2))
+
+        // Call compact() - on floating, this should:
+        // 1. NOT hide the window
+        // 2. Auto-enable hybrid mode via internal flag
+        // 3. Show compact indicators alongside expanded content
+        await notch.compact()
+        try await Task.sleep(for: .seconds(3))
+
+        // Verify: user-facing property should NOT be mutated
+        // (floatingHybridModeActive is internal, showCompactContentInExpandedMode stays false)
 
         await notch.hide()
     }

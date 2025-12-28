@@ -80,10 +80,10 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
     ///
     /// Layout behavior:
     /// - **Normal mode**: Compact content collapses to notch width in expanded state
-    /// - **Hybrid mode** (`showCompactContentInExpandedMode`): Compact content remains visible,
+    /// - **Hybrid mode** (`isHybridModeEnabled`): Compact content remains visible,
     ///   filling the width of the expanded content with symmetric left/right positioning
     private func notchContent() -> some View {
-        let showCompactInExpanded = dynamicNotch.showCompactContentInExpandedMode
+        let showCompactInExpanded = dynamicNotch.isHybridModeEnabled
         let useHybridLayout = showCompactInExpanded && dynamicNotch.state == .expanded
 
         return ZStack(alignment: .top) {
@@ -122,13 +122,13 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
     func compactContent() -> some View {
         // In hybrid mode, show compact content in both compact AND expanded states
         // In normal mode, only show in compact state
-        let showContent = dynamicNotch.showCompactContentInExpandedMode
+        let showContent = dynamicNotch.isHybridModeEnabled
             ? dynamicNotch.state != .hidden
             : dynamicNotch.state == .compact
 
         // Symmetric layout creates equal-width containers on each side of the notch
         // This ensures compact indicators are centered within their respective halves
-        let useSymmetricLayout = dynamicNotch.showCompactContentInExpandedMode && dynamicNotch.state == .expanded
+        let useSymmetricLayout = dynamicNotch.isHybridModeEnabled && dynamicNotch.state == .expanded
 
         return HStack(spacing: 0) {
             if showContent, !dynamicNotch.disableCompactLeading {
