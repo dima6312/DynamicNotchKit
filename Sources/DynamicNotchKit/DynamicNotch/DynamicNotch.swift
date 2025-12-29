@@ -350,7 +350,9 @@ extension DynamicNotch {
             do {
                 try await Task.sleep(for: .seconds(style.animationDuration))
             } catch is CancellationError {
-                // Task was cancelled - still need to complete
+                // Task was cancelled - expand() will handle state reset
+                completion?()
+                return
             } catch {
                 // Task.sleep only throws CancellationError, but catch-all satisfies exhaustiveness
             }

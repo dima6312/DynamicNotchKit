@@ -140,12 +140,18 @@ struct DynamicNotchKitTests {
 
         await notch.expand()
         try await Task.sleep(for: .seconds(4))
-        await notch.compact()
-        try await Task.sleep(for: .seconds(2))
-        await notch.expand()
-        try await Task.sleep(for: .seconds(2))
-        await notch.compact()
-        try await Task.sleep(for: .seconds(2))
+
+        // Only test compact() transitions in notch mode where matchedGeometryEffect
+        // animates between states. Floating mode uses hybrid fallback (tested separately).
+        if style.isNotch {
+            await notch.compact()
+            try await Task.sleep(for: .seconds(2))
+            await notch.expand()
+            try await Task.sleep(for: .seconds(2))
+            await notch.compact()
+            try await Task.sleep(for: .seconds(2))
+        }
+
         await notch.hide()
     }
 

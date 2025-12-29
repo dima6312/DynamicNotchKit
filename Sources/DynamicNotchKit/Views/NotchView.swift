@@ -183,6 +183,11 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         .frame(minWidth: dynamicNotch.notchSize.width)
     }
 
+    /// Compact icon size for the notch indicators.
+    private var compactIconSize: CGFloat {
+        dynamicNotch.notchSize.height - 12 // Leave visual margin within the row frame
+    }
+
     /// Helper to build a single side (leading or trailing) of compact content.
     ///
     /// - Parameters:
@@ -202,18 +207,22 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         widthBinding: Binding<CGFloat>
     ) -> some View {
         let edgePadding: CGFloat = useSymmetricLayout ? safeAreaInset : 8
+        // Apply explicit frame to ensure custom views (like gradients) have proper size
+        let framedContent = content
+            .environment(\.notchSection, section)
+            .frame(width: compactIconSize, height: compactIconSize)
 
         Group {
             if useSymmetricLayout {
                 // Equal-width container with content aligned to outer edge
                 HStack(spacing: 0) {
                     if edge == .trailing { Spacer(minLength: 0) }
-                    content.environment(\.notchSection, section)
+                    framedContent
                     if edge == .leading { Spacer(minLength: 0) }
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                content.environment(\.notchSection, section)
+                framedContent
             }
         }
         .safeAreaInset(edge: edge, spacing: 0) { Color.clear.frame(width: edgePadding) }

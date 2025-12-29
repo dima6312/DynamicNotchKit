@@ -63,9 +63,7 @@ public enum DynamicNotchStyle: Sendable {
         }
     }
 
-    /// The duration of animations in seconds.
-    /// Used internally to coordinate async operations with animation completion.
-    /// This constant is used by all animation properties to ensure consistency.
+    /// Internal constant used by all animation properties to ensure consistency.
     private static let standardAnimationDuration: TimeInterval = 0.4
 
     var openingAnimation: Animation {

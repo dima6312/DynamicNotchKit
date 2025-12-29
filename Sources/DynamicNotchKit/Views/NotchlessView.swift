@@ -75,7 +75,7 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
 
     /// Compact icon size for the floating indicators row.
     private var compactIconSize: CGFloat {
-        dynamicNotch.notchSize.height - 12 // Account for top (4pt) and bottom (8pt) insets
+        dynamicNotch.notchSize.height - 12 // Leave visual margin within the row frame
     }
 
     /// Row with compact indicators and optional center content for hybrid mode.
@@ -91,13 +91,14 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactLeading)
 
-            Spacer(minLength: 0)
+            // Minimum spacing ensures elements don't touch when fixedSize() shrinks the container
+            Spacer(minLength: 12)
 
             // Center content - visible in floating fallback, hidden by notch in notch mode
             dynamicNotch.compactCenterContent
                 .environment(\.notchSection, .compactCenter)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 12)
 
             // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
             // Use explicit frame to constrain icon size within the row

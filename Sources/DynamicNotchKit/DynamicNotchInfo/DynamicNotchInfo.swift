@@ -74,6 +74,7 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
     ///   - description: the description to display in the expanded state of the notch. If unspecified, no description will be displayed.
     ///   - compactLeading: the icon to display in the compact leading state of the notch. If unspecified, the expanded icon will be displayed.
     ///   - compactTrailing: the icon to display in the compact trailing state of the notch. If unspecified, no icon will be displayed.
+    ///   - showCompactContentInExpandedMode: when `true`, compact indicators remain visible alongside expanded content. Defaults to `false` for traditional mutually-exclusive states.
     ///   - hoverBehavior: the hover behavior of the notch, which allows for different interactions such as haptic feedback, increased shadow etc.
     ///   - style: the popover's style. If unspecified, the style will be automatically set according to the screen (notch or floating).
     public init(
@@ -82,6 +83,7 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
         description: LocalizedStringKey? = nil,
         compactLeading: DynamicNotchInfo.Label? = nil,
         compactTrailing: DynamicNotchInfo.Label? = nil,
+        showCompactContentInExpandedMode: Bool = false,
         hoverBehavior: DynamicNotchHoverBehavior = .all,
         style: DynamicNotchStyle = .auto
     ) {
@@ -90,7 +92,8 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
         self.description = description
         self.internalDynamicNotch = DynamicNotch(
             hoverBehavior: hoverBehavior,
-            style: style
+            style: style,
+            showCompactContentInExpandedMode: showCompactContentInExpandedMode
         ) {
             InfoView(dynamicNotch: self)
         } compactLeading: {
@@ -117,13 +120,13 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
     public func expand(
         on screen: NSScreen? = nil
     ) async {
-        await internalDynamicNotch._expand(on: screen)
+        await internalDynamicNotch.expand(on: screen)
     }
 
     public func compact(
         on screen: NSScreen? = nil
     ) async {
-        await internalDynamicNotch._compact(on: screen)
+        await internalDynamicNotch.compact(on: screen)
     }
 
     public func hide() async {
