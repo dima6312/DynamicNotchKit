@@ -67,7 +67,7 @@ await notch.expand()
 
 ### Floating Style Behavior
 
-On Macs without a notch (using the `.floating` style), calling `compact()` will automatically enable hybrid mode and expand the window, showing compact indicators alongside the expanded content. This provides a consistent UX across all Mac models - your compact indicators are always visible regardless of hardware.
+On Macs without a notch (using the `.floating` style), calling `compact()` will automatically enable hybrid mode and expand the window, showing compact indicators alongside the expanded content. This provides a consistent UX across all Mac models, ensuring your compact indicators are displayed when requested, regardless of hardware.
 
 This is only a basic glimpse into this framework's capabilities. Documentation is available for **all** public methods and properties, so I encourage you to take a look at it for more advanced usage. Alternatively, you can take a look at the unit tests for this package, where I have added some usage examples as well.
 

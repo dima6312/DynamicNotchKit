@@ -468,6 +468,7 @@ struct DynamicNotchKitTests {
 
         // Call compact() directly from hidden state (without calling expand() first)
         await notch.compact()
+        try await Task.sleep(for: .seconds(0.5))
 
         // Should auto-expand with hybrid mode enabled
         #expect(notch.state == .expanded, "Should expand from hidden state")
@@ -488,7 +489,7 @@ struct DynamicNotchKitTests {
         }
 
         // Rapid fire state changes - should complete without crashes
-        for _ in 0..<5 {
+        for _ in 0 ..< 5 {
             await notch.expand()
             await notch.compact()
             await notch.expand()

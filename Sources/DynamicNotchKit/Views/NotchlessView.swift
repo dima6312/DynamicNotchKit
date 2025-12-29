@@ -68,29 +68,31 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     @ViewBuilder
     private func compactIndicatorsRow() -> some View {
         HStack(spacing: 0) {
-            if !dynamicNotch.disableCompactLeading {
-                dynamicNotch.compactLeadingContent
-                    .environment(\.notchSection, .compactLeading)
-                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .trailing)).combined(with: .opacity))
-            }
+            // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
+            dynamicNotch.compactLeadingContent
+                .environment(\.notchSection, .compactLeading)
+                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
+                .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
+                .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
 
             Spacer()
 
             // Center content - visible in floating fallback, hidden by notch in notch mode
             dynamicNotch.compactCenterContent
                 .environment(\.notchSection, .compactCenter)
-                .transition(.blur(intensity: 10).combined(with: .opacity))
 
             Spacer()
 
-            if !dynamicNotch.disableCompactTrailing {
-                dynamicNotch.compactTrailingContent
-                    .environment(\.notchSection, .compactTrailing)
-                    .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .leading)).combined(with: .opacity))
-            }
+            // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
+            dynamicNotch.compactTrailingContent
+                .environment(\.notchSection, .compactTrailing)
+                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
+                .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
+                .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
         }
         .frame(height: dynamicNotch.notchSize.height)
         .padding(.horizontal, safeAreaInset)
         .padding(.vertical, 10)
+        .transition(.blur(intensity: 10).combined(with: .opacity))
     }
 }

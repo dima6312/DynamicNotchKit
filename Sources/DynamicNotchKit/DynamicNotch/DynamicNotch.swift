@@ -78,7 +78,7 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
     /// Center content shown in floating fallback mode (hidden by notch in notch mode).
     /// Set this to display a title or other UI between the leading and trailing indicators.
-    @Published public var compactCenterContent: AnyView = AnyView(EmptyView())
+    @Published public var compactCenterContent: AnyView = .init(EmptyView())
 
     /// When `true`, compact leading and trailing content remain visible in the expanded state,
     /// allowing "hybrid" layouts where indicators appear alongside the notch while expanded content
@@ -102,7 +102,7 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     @Published public private(set) var isHovering: Bool = false
 
     private var closePanelTask: Task<(), Never>? // Used to close the panel after hiding completes
-    private var screenObserverTask: Task<Void, Never>? // Observes screen parameter changes
+    private var screenObserverTask: Task<(), Never>? // Observes screen parameter changes
 
     /// Maximum number of retries when waiting for hover to end before hiding.
     /// Prevents infinite loops if hover state gets stuck (5 seconds max at 0.1s intervals).
@@ -200,7 +200,7 @@ extension DynamicNotch {
         await _expand(on: screen, skipHide: false)
     }
 
-    func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool, resetHybridMode: Bool = true) async {
+    func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide _: Bool, resetHybridMode: Bool = true) async {
         // Reset floating hybrid mode when explicitly expanding
         // (compact indicators should only show when compact() is called)
         // This must happen even if already expanded (e.g., after floating fallback compact())
