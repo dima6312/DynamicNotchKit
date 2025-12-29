@@ -82,31 +82,25 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     /// The center content is only rendered in NotchlessView (floating mode), not in NotchView.
     @ViewBuilder
     private func compactIndicatorsRow() -> some View {
-        HStack(spacing: 0) {
-            // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
-            // Only constrain height to allow text content (e.g., "Pasted") to expand horizontally
-            dynamicNotch.compactLeadingContent
-                .environment(\.notchSection, .compactLeading)
-                .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
-                .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
-                .accessibilityHidden(dynamicNotch.disableCompactLeading)
-
-            // Minimum spacing ensures elements don't touch when fixedSize() shrinks the container
-            Spacer(minLength: 12)
+        // Use HStack spacing for automatic gaps between present elements
+        HStack(spacing: 12) {
+            // Conditional rendering ensures disabled views don't reserve space (matches NotchView.swift)
+            if !dynamicNotch.disableCompactLeading {
+                dynamicNotch.compactLeadingContent
+                    .environment(\.notchSection, .compactLeading)
+                    .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
+            }
 
             // Center content - visible in floating fallback, hidden by notch in notch mode
             dynamicNotch.compactCenterContent
                 .environment(\.notchSection, .compactCenter)
 
-            Spacer(minLength: 12)
-
-            // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
-            // Only constrain height to allow text content (e.g., "Pasted") to expand horizontally
-            dynamicNotch.compactTrailingContent
-                .environment(\.notchSection, .compactTrailing)
-                .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
-                .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
-                .accessibilityHidden(dynamicNotch.disableCompactTrailing)
+            // Conditional rendering ensures disabled views don't reserve space (matches NotchView.swift)
+            if !dynamicNotch.disableCompactTrailing {
+                dynamicNotch.compactTrailingContent
+                    .environment(\.notchSection, .compactTrailing)
+                    .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
+            }
         }
         .frame(height: dynamicNotch.notchSize.height)
         .padding(.horizontal, safeAreaInset)

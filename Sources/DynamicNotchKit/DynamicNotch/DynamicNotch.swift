@@ -74,8 +74,11 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     let expandedContent: Expanded
     let compactLeadingContent: CompactLeading
     let compactTrailingContent: CompactTrailing
-    @Published var disableCompactLeading: Bool = false
-    @Published var disableCompactTrailing: Bool = false
+    /// When `true`, hides the compact leading content and removes it from layout.
+    @Published public var disableCompactLeading: Bool = false
+
+    /// When `true`, hides the compact trailing content and removes it from layout.
+    @Published public var disableCompactTrailing: Bool = false
 
     /// Center content shown in floating fallback mode (hidden by notch in notch mode).
     /// Set this to display a title or other UI between the leading and trailing indicators.
