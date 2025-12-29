@@ -200,11 +200,14 @@ extension DynamicNotch {
         await _expand(on: screen, skipHide: false)
     }
 
-    func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool) async {
+    func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool, resetHybridMode: Bool = true) async {
         // Reset floating hybrid mode when explicitly expanding
         // (compact indicators should only show when compact() is called)
         // This must happen even if already expanded (e.g., after floating fallback compact())
-        floatingHybridModeActive = false
+        // Skip reset when called from _compact() to preserve the hybrid mode flag set there.
+        if resetHybridMode {
+            floatingHybridModeActive = false
+        }
 
         guard state != .expanded else {
             closePanelTask?.cancel() // Cancel any pending close operation
@@ -273,7 +276,7 @@ extension DynamicNotch {
             await MainActor.run {
                 floatingHybridModeActive = true
             }
-            await _expand(on: screen, skipHide: skipHide)
+            await _expand(on: screen, skipHide: skipHide, resetHybridMode: false)
             return
         }
 
