@@ -104,19 +104,13 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
     public func expand(
         on screen: NSScreen = NSScreen.screens[0]
     ) async {
-        await internalDynamicNotch._expand(
-            on: screen,
-            skipHide: shouldSkipHideWhenConverting
-        )
+        await internalDynamicNotch._expand(on: screen)
     }
 
     public func compact(
         on screen: NSScreen = NSScreen.screens[0]
     ) async {
-        await internalDynamicNotch._compact(
-            on: screen,
-            skipHide: shouldSkipHideWhenConverting
-        )
+        await internalDynamicNotch._compact(on: screen)
     }
 
     public func hide() async {

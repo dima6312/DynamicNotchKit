@@ -197,10 +197,10 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
 extension DynamicNotch {
     public func expand(on screen: NSScreen = NSScreen.screens[0]) async {
-        await _expand(on: screen, skipHide: false)
+        await _expand(on: screen)
     }
 
-    func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide _: Bool, resetHybridMode: Bool = true) async {
+    func _expand(on screen: NSScreen = NSScreen.screens[0], resetHybridMode: Bool = true) async {
         // Reset floating hybrid mode when explicitly expanding
         // (compact indicators should only show when compact() is called)
         // This must happen even if already expanded (e.g., after floating fallback compact())
@@ -237,10 +237,10 @@ extension DynamicNotch {
     }
 
     public func compact(on screen: NSScreen = NSScreen.screens[0]) async {
-        await _compact(on: screen, skipHide: false)
+        await _compact(on: screen)
     }
 
-    func _compact(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool) async {
+    func _compact(on screen: NSScreen = NSScreen.screens[0]) async {
         guard state != .compact else {
             closePanelTask?.cancel() // Cancel any pending close operation
             return
@@ -276,7 +276,7 @@ extension DynamicNotch {
             await MainActor.run {
                 floatingHybridModeActive = true
             }
-            await _expand(on: screen, skipHide: skipHide, resetHybridMode: false)
+            await _expand(on: screen, resetHybridMode: false)
             return
         }
 

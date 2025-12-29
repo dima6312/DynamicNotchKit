@@ -45,10 +45,11 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
 
     private func notchContent() -> some View {
         VStack(spacing: 0) {
-            // Show compact indicators row in hybrid mode
-            if dynamicNotch.isHybridModeEnabled {
-                compactIndicatorsRow()
-            }
+            // Always render the row to maintain stable view identity during rapid transitions.
+            // Control visibility via frame height instead of conditional rendering.
+            compactIndicatorsRow()
+                .frame(height: dynamicNotch.isHybridModeEnabled ? nil : 0, alignment: .top)
+                .clipped()
 
             dynamicNotch.expandedContent
                 .transition(.blur(intensity: 10).combined(with: .opacity))
@@ -76,6 +77,7 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                 .fixedSize()
                 .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
+                .accessibilityHidden(dynamicNotch.disableCompactLeading)
 
             Spacer()
 
@@ -93,10 +95,10 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                 .fixedSize()
                 .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
+                .accessibilityHidden(dynamicNotch.disableCompactTrailing)
         }
         .frame(height: dynamicNotch.notchSize.height)
         .padding(.horizontal, safeAreaInset)
         .padding(.vertical, 10)
-        .transition(.blur(intensity: 10).combined(with: .opacity))
     }
 }
