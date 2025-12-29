@@ -207,10 +207,11 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         widthBinding: Binding<CGFloat>
     ) -> some View {
         let edgePadding: CGFloat = useSymmetricLayout ? safeAreaInset : 8
-        // Apply explicit frame to ensure custom views (like gradients) have proper size
+        // Only constrain height to allow text content (e.g., "Pasted") to expand horizontally
+        // Content expands away from notch: leading→left, trailing→right
         let framedContent = content
             .environment(\.notchSection, section)
-            .frame(width: compactIconSize, height: compactIconSize)
+            .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
 
         Group {
             if useSymmetricLayout {

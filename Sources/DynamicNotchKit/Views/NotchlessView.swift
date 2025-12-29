@@ -75,7 +75,7 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
 
     /// Compact icon size for the floating indicators row.
     private var compactIconSize: CGFloat {
-        dynamicNotch.notchSize.height - 12 // Leave visual margin within the row frame
+        max(dynamicNotch.notchSize.height - 12, 0) // Leave visual margin within the row frame
     }
 
     /// Row with compact indicators and optional center content for hybrid mode.
@@ -84,10 +84,12 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     private func compactIndicatorsRow() -> some View {
         HStack(spacing: 0) {
             // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
-            // Use explicit frame to constrain icon size within the row
+            // Only constrain height to allow text content (e.g., "Pasted") to expand horizontally
             dynamicNotch.compactLeadingContent
                 .environment(\.notchSection, .compactLeading)
-                .frame(width: compactIconSize, height: compactIconSize)
+                .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
+                .fixedSize()
+                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactLeading)
 
@@ -101,10 +103,12 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             Spacer(minLength: 12)
 
             // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
-            // Use explicit frame to constrain icon size within the row
+            // Only constrain height to allow text content (e.g., "Pasted") to expand horizontally
             dynamicNotch.compactTrailingContent
                 .environment(\.notchSection, .compactTrailing)
-                .frame(width: compactIconSize, height: compactIconSize)
+                .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
+                .fixedSize()
+                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactTrailing)
         }
