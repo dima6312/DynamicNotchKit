@@ -309,8 +309,11 @@ extension DynamicNotch {
         closePanelTask?.cancel()
         closePanelTask = Task {
             try? await Task.sleep(for: .seconds(0.4)) // Wait for animation to complete
-            // Always cleanup and resume continuation, even on cancellation
-            deinitializeWindow()
+            // Only deinitialize if not cancelled (a new window may have been opened)
+            if !Task.isCancelled {
+                deinitializeWindow()
+            }
+            // Always resume continuation to prevent leaks
             completion?()
         }
     }
