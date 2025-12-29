@@ -233,11 +233,13 @@ extension DynamicNotch {
 
             // If already expanded, just enable hybrid mode with animation and return
             if state == .expanded {
-                Task { @MainActor in
+                await MainActor.run {
                     withAnimation(style.conversionAnimation) {
                         floatingHybridModeActive = true
                     }
                 }
+                // Wait for animation to complete (matches pattern in _expand/_compact)
+                try? await Task.sleep(for: .seconds(0.4))
                 return
             }
 
