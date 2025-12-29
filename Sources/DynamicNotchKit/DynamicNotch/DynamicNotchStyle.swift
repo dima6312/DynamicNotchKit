@@ -63,20 +63,29 @@ public enum DynamicNotchStyle: Sendable {
         }
     }
 
+    /// Internal constant used by all animation properties to ensure consistency.
+    private static let standardAnimationDuration: TimeInterval = 0.4
+
     var openingAnimation: Animation {
         if isNotch {
-            .bouncy(duration: 0.4)
+            .bouncy(duration: Self.standardAnimationDuration)
         } else {
-            .snappy(duration: 0.4)
+            .snappy(duration: Self.standardAnimationDuration)
         }
     }
 
     var closingAnimation: Animation {
-        .smooth(duration: 0.4)
+        .smooth(duration: Self.standardAnimationDuration)
     }
 
     var conversionAnimation: Animation {
-        .snappy(duration: 0.4)
+        .snappy(duration: Self.standardAnimationDuration)
+    }
+
+    /// The duration of animations in seconds.
+    /// Used internally to coordinate async operations with animation completion.
+    var animationDuration: TimeInterval {
+        Self.standardAnimationDuration
     }
 }
 

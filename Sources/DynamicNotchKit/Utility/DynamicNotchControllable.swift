@@ -18,15 +18,15 @@ public protocol DynamicNotchControllable {
     ///
     /// This method is asynchronous and waits for the animation to complete before returning.
     ///
-    /// - Parameter screen: the screen on which to show the expanded notch.
-    func expand(on screen: NSScreen) async
+    /// - Parameter screen: the screen on which to show the expanded notch. If nil, defaults to NSScreen.main or the first available screen.
+    func expand(on screen: NSScreen?) async
 
     /// Sets the notch's appearance to be compact, showing the leading and trailing contents.
     ///
     /// This method is asynchronous and waits for the animation to complete before returning.
     ///
-    /// - Parameter screen: the screen on which to show the compact notch.
-    func compact(on screen: NSScreen) async
+    /// - Parameter screen: the screen on which to show the compact notch. If nil, defaults to NSScreen.main or the first available screen.
+    func compact(on screen: NSScreen?) async
 
     /// Sets the notch's appearance to be hidden, hiding all content and deinitializing the window.
     ///

@@ -46,6 +46,29 @@ Furthermore, there is a `.floating` style, which will **automatically** be used 
 
 <img src="media/demo-floating.gif" width="50%"/>
 
+## Hybrid Mode
+
+DynamicNotchKit supports a "hybrid" layout where compact indicators (leading/trailing) remain visible alongside the expanded content. This is useful for showing status icons or controls while displaying detailed information.
+
+```swift
+let notch = DynamicNotch(
+    showCompactContentInExpandedMode: true
+) {
+    Text("Expanded content here")
+} compactLeading: {
+    Image(systemName: "waveform")
+        .foregroundStyle(.green)
+} compactTrailing: {
+    Image(systemName: "xmark.circle.fill")
+        .foregroundStyle(.red)
+}
+await notch.expand()
+```
+
+### Floating Style Behavior
+
+On Macs without a notch (using the `.floating` style), calling `compact()` will automatically enable hybrid mode and expand the window, showing compact indicators alongside the expanded content. This provides a consistent UX across all Mac models, ensuring your compact indicators are displayed when requested, regardless of hardware.
+
 This is only a basic glimpse into this framework's capabilities. Documentation is available for **all** public methods and properties, so I encourage you to take a look at it for more advanced usage. Alternatively, you can take a look at the unit tests for this package, where I have added some usage examples as well.
 
 Feel free to ask questions/report issues in the Issues tab!

@@ -16,4 +16,5 @@ enum DynamicNotchSection {
     case expanded
     case compactLeading
     case compactTrailing
+    case compactCenter
 }
