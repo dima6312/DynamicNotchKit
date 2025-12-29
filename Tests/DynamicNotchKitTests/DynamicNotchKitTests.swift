@@ -449,6 +449,35 @@ struct DynamicNotchKitTests {
         await notch2.hide()
     }
 
+    @Test("DynamicNotch - Floating fallback from hidden state", .tags(.floatingStyle))
+    func dynamicNotchFloatingFallbackFromHidden() async throws {
+        // Tests that compact() called directly from hidden state correctly enables hybrid mode.
+        // This verifies the fix for the bug where floatingHybridModeActive was reset in _expand()
+        // before the guard check, breaking the floating fallback when compact() is called from .hidden state.
+        let notch = DynamicNotch(style: .floating) {
+            Text("Test")
+        } compactLeading: {
+            Image(systemName: "circle")
+        } compactTrailing: {
+            Image(systemName: "square")
+        }
+
+        // Verify initial hidden state
+        #expect(notch.state == .hidden)
+        #expect(notch.floatingHybridModeActive == false)
+
+        // Call compact() directly from hidden state (without calling expand() first)
+        await notch.compact()
+        try await Task.sleep(for: .seconds(0.5))
+
+        // Should auto-expand with hybrid mode enabled
+        #expect(notch.state == .expanded, "Should expand from hidden state")
+        #expect(notch.floatingHybridModeActive == true, "Hybrid mode should be active")
+        #expect(notch.isHybridModeEnabled == true)
+
+        await notch.hide()
+    }
+
     @Test("DynamicNotch - Rapid state transitions don't crash", .tags(.floatingStyle))
     func dynamicNotchRapidStateTransitions() async throws {
         let notch = DynamicNotch(style: .floating) {
@@ -460,7 +489,7 @@ struct DynamicNotchKitTests {
         }
 
         // Rapid fire state changes - should complete without crashes
-        for _ in 0..<5 {
+        for _ in 0 ..< 5 {
             await notch.expand()
             await notch.compact()
             await notch.expand()

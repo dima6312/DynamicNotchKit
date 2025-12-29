@@ -16,7 +16,7 @@ extension DynamicNotchInfo {
             self.dynamicNotch = dynamicNotch
         }
 
-        public var body: some View {
+        var body: some View {
             dynamicNotch.compactLeading
                 .transition(.blur(intensity: 10).combined(with: .scale(scale: 0.8)).combined(with: .opacity))
                 .matchedGeometryEffect(
@@ -34,7 +34,7 @@ extension DynamicNotchInfo {
             self.dynamicNotch = dynamicNotch
         }
 
-        public var body: some View {
+        var body: some View {
             dynamicNotch.compactTrailing
                 .transition(.blur(intensity: 10).combined(with: .scale(scale: 0.8)).combined(with: .opacity))
         }
@@ -49,7 +49,7 @@ extension DynamicNotchInfo {
             self.dynamicNotch = dynamicNotch
         }
 
-        public var body: some View {
+        var body: some View {
             HStack(spacing: 10) {
                 if let icon = dynamicNotch.icon {
                     icon

@@ -14,6 +14,12 @@ DynamicNotchKit provides a set of tools to help you integrate your macOS app wit
 
 Unfortunately, a limitation (much like iOS), is that not all devices have this notch. Lucky for you, DynamicNotchKit is designed to be flexible and can adapt to different screen types and sizes, and provides a floating window style as backup. This ensures that your app looks great on _all_ devices.
 
+## Hybrid Mode
+
+DynamicNotchKit supports a "hybrid" layout where compact indicators remain visible alongside expanded content. Enable this by setting `showCompactContentInExpandedMode: true` when creating a ``DynamicNotch``.
+
+On Macs without a physical notch (floating style), calling `compact()` automatically enables hybrid mode and expands the window, showing your compact indicators alongside the expanded content. This ensures a consistent experience across all Mac hardware.
+
 ## The Vision
 
 There are _many_, _**many**_ macOS apps that attempt to add functionality to the notch. Unfortunately, what a lot of them do is to attempt to put *too* much functionality into such a small popover. The goal for DynamicNotchKit is not to replace the main app window, but to provide a simple and elegant way to display notifications and updates in a way that feels native to the platform, similar to iOS's Dynamic Island.

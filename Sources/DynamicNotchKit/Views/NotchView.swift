@@ -193,8 +193,8 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
     ///   - useSymmetricLayout: Whether to use equal-width containers (hybrid expanded mode)
     ///   - widthBinding: Binding to track the content width for offset calculations
     @ViewBuilder
-    private func compactSideContent<Content: View>(
-        content: Content,
+    private func compactSideContent(
+        content: some View,
         section: DynamicNotchSection,
         edge: HorizontalEdge,
         scaleAnchor: UnitPoint,
