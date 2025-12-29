@@ -259,16 +259,7 @@ extension DynamicNotch {
 
         Task { @MainActor in
             if state != .hidden {
-                if !skipHide {
-                    withAnimation(style.closingAnimation) {
-                        self.state = .hidden
-                    }
-
-                    try? await Task.sleep(for: .seconds(0.25))
-
-                    guard self.state == .hidden else { return }
-                }
-
+                // Direct transition from expanded to compact (no hide step)
                 withAnimation(style.conversionAnimation) {
                     self.state = .compact
                 }
