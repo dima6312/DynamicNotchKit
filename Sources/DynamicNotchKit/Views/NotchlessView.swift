@@ -50,12 +50,12 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
 
     private func notchContent() -> some View {
         VStack(spacing: 0) {
-            // Always render the row to maintain stable view identity during rapid transitions.
-            // Use explicit height and opacity - animation applied at VStack level for smooth resize.
-            compactIndicatorsRow()
-                .frame(height: dynamicNotch.isHybridModeEnabled ? indicatorsRowHeight : 0)
-                .opacity(dynamicNotch.isHybridModeEnabled ? 1 : 0)
-                .clipped()
+            // Always render the row at full size to prevent layout issues during rapid transitions.
+            // Use opacity for visibility and add explicit id to maintain view identity.
+            if dynamicNotch.isHybridModeEnabled {
+                compactIndicatorsRow()
+                    .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .top)))
+            }
 
             dynamicNotch.expandedContent
                 .transition(.blur(intensity: 10).combined(with: .opacity))
@@ -88,8 +88,6 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             dynamicNotch.compactLeadingContent
                 .environment(\.notchSection, .compactLeading)
                 .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
-                .fixedSize()
-                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactLeading)
 
@@ -107,8 +105,6 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             dynamicNotch.compactTrailingContent
                 .environment(\.notchSection, .compactTrailing)
                 .frame(minWidth: compactIconSize, minHeight: compactIconSize, maxHeight: compactIconSize)
-                .fixedSize()
-                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactTrailing)
         }

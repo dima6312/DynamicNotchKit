@@ -432,5 +432,7 @@ private extension DynamicNotch {
         guard let windowController else { return }
         windowController.close()
         self.windowController = nil
+        // Reset namespace so new window can set its own (prevents stale namespace reference)
+        namespace = nil
     }
 }
