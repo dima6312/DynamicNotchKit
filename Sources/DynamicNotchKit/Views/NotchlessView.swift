@@ -73,6 +73,8 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                 .environment(\.notchSection, .compactLeading)
                 .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
+                .fixedSize()
+                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
 
             Spacer()
@@ -88,6 +90,8 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                 .environment(\.notchSection, .compactTrailing)
                 .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
+                .fixedSize()
+                .layoutPriority(1)
                 .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
         }
         .frame(height: dynamicNotch.notchSize.height)
