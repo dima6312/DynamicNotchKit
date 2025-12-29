@@ -5,6 +5,7 @@
 //  Created by Kai Azim on 2023-08-25.
 //
 
+import Combine
 import SwiftUI
 
 // MARK: DynamicNotchInfo
@@ -46,13 +47,18 @@ import SwiftUI
 ///
 public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable {
     var internalDynamicNotch: DynamicNotch<InfoView, CompactLeadingView, CompactTrailingView>!
+    private var cancellable: AnyCancellable?
 
     @Published public var icon: DynamicNotchInfo.Label?
     @Published public var title: LocalizedStringKey
     @Published public var description: LocalizedStringKey?
     @Published public var textColor: Color?
     @Published public var compactLeading: DynamicNotchInfo.Label? {
-        didSet { internalDynamicNotch.disableCompactLeading = compactLeading == nil }
+        didSet {
+            internalDynamicNotch.disableCompactLeading = compactLeading == nil
+            // Reset flag when user explicitly sets a different compact leading icon
+            shouldSkipHideWhenConverting = false
+        }
     }
 
     @Published public var compactTrailing: DynamicNotchInfo.Label? {
@@ -92,6 +98,13 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
         } compactTrailing: {
             CompactTrailingView(dynamicNotch: self)
         }
+
+        // Forward objectWillChange from internalDynamicNotch so views observing
+        // DynamicNotchInfo also update when internal state (like isHybridModeEnabled) changes.
+        self.cancellable = internalDynamicNotch.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+
         if let compactLeading {
             self.compactLeading = compactLeading
         } else {
@@ -102,13 +115,13 @@ public final class DynamicNotchInfo: ObservableObject, DynamicNotchControllable 
     }
 
     public func expand(
-        on screen: NSScreen = NSScreen.screens[0]
+        on screen: NSScreen? = nil
     ) async {
         await internalDynamicNotch._expand(on: screen)
     }
 
     public func compact(
-        on screen: NSScreen = NSScreen.screens[0]
+        on screen: NSScreen? = nil
     ) async {
         await internalDynamicNotch._compact(on: screen)
     }

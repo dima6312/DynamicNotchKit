@@ -8,7 +8,7 @@ extension Tag {
 }
 
 /// Hey there! Looks like you found DynamicNotchKit's tests.
-/// Please note that these tests do NOT actually "test" anything. They are only here to serve as examples of usage of DynamicNotchKit.
+/// These tests demonstrate usage patterns and verify key functionality including hybrid mode behaviors.
 /// To run these tests, simply `cd` into the `DynamicNotchKit` directory and run `swift test`. Alternatively, open this package directly in Xcode, and the tests should show up in the sidebar.
 @MainActor
 @Suite(.serialized)
@@ -83,7 +83,7 @@ struct DynamicNotchKitTests {
         withAnimation {
             notch.icon = nil
             notch.title = "There's also a compact style like iOS!"
-            notch.description = "Note: this doesn't work in the floating style."
+            notch.description = "In floating style, this uses hybrid mode."
         }
 
         try await Task.sleep(for: .seconds(4))
@@ -117,7 +117,7 @@ struct DynamicNotchKitTests {
         try await _dynamicNotchInfoGradientCustomRadii(with: .notch(topCornerRadius: 10, bottomCornerRadius: 25))
     }
 
-    @Test("Info - Custom floating style & gradient", .tags(.floatingStyle), .disabled("Compact mode does not support floating windows"))
+    @Test("Info - Custom floating style & gradient", .tags(.floatingStyle))
     func dynamicNotchInfoCustomFloatingStyle() async throws {
         try await _dynamicNotchInfoGradientCustomRadii(with: .floating(cornerRadius: 25))
     }
@@ -156,7 +156,7 @@ struct DynamicNotchKitTests {
         try await _testInfoWithAppIcon(with: .notch)
     }
 
-    @Test("Info - Floating with custom icon", .tags(.floatingStyle), .disabled("Compact mode does not support floating windows"))
+    @Test("Info - Floating with custom icon", .tags(.floatingStyle))
     func dynamicNotchInfoAppIconFloating() async throws {
         try await _testInfoWithAppIcon(with: .floating)
     }
@@ -271,12 +271,12 @@ struct DynamicNotchKitTests {
 
     // MARK: - Hybrid Mode (Compact Content in Expanded State)
 
-    @Test("DynamicNotch - Hybrid mode with compact indicators (notch style)", .tags(.notchStyle))
+    @Test("DynamicNotch - Hybrid mode notch style", .tags(.notchStyle))
     func dynamicNotchHybridModeNotchStyle() async throws {
         try await _dynamicNotchHybridMode(with: .notch)
     }
 
-    @Test("DynamicNotch - Hybrid mode with floating style (explicit)", .tags(.floatingStyle))
+    @Test("DynamicNotch - Hybrid mode floating style", .tags(.floatingStyle))
     func dynamicNotchHybridModeFloatingStyle() async throws {
         // Test explicit hybrid mode on floating style
         try await _dynamicNotchHybridMode(with: .floating)
@@ -337,7 +337,7 @@ struct DynamicNotchKitTests {
 
     // MARK: - Floating Fallback (compact() auto-enables hybrid mode)
 
-    @Test("DynamicNotch - Floating fallback: compact() enables hybrid mode", .tags(.floatingStyle))
+    @Test("DynamicNotch - Floating fallback enables hybrid mode", .tags(.floatingStyle))
     func dynamicNotchFloatingFallback() async throws {
         // When compact() is called on floating style, it should auto-enable hybrid mode
         // and expand (not hide), showing compact indicators alongside expanded content.
@@ -399,7 +399,7 @@ struct DynamicNotchKitTests {
 
     // MARK: - Hybrid Mode Reset Tests
 
-    @Test("DynamicNotch - floatingHybridModeActive resets on explicit expand()", .tags(.floatingStyle))
+    @Test("DynamicNotch - Hybrid mode resets on expand", .tags(.floatingStyle))
     func dynamicNotchHybridModeResetOnExpand() async throws {
         let notch = DynamicNotch(style: .floating) {
             Text("Test")
@@ -423,7 +423,7 @@ struct DynamicNotchKitTests {
         await notch.hide()
     }
 
-    @Test("DynamicNotch - isHybridModeEnabled computed property logic", .tags(.notchStyle))
+    @Test("DynamicNotch - Hybrid mode computed property", .tags(.notchStyle))
     func dynamicNotchHybridModeComputedProperty() async throws {
         // Test with user setting = true
         let notch1 = DynamicNotch(
@@ -449,7 +449,7 @@ struct DynamicNotchKitTests {
         await notch2.hide()
     }
 
-    @Test("DynamicNotch - Floating fallback from hidden state", .tags(.floatingStyle))
+    @Test("DynamicNotch - Floating fallback from hidden", .tags(.floatingStyle))
     func dynamicNotchFloatingFallbackFromHidden() async throws {
         // Tests that compact() called directly from hidden state correctly enables hybrid mode.
         // This verifies the fix for the bug where floatingHybridModeActive was reset in _expand()
@@ -478,7 +478,7 @@ struct DynamicNotchKitTests {
         await notch.hide()
     }
 
-    @Test("DynamicNotch - Rapid state transitions don't crash", .tags(.floatingStyle))
+    @Test("DynamicNotch - Rapid state transitions", .tags(.floatingStyle))
     func dynamicNotchRapidStateTransitions() async throws {
         let notch = DynamicNotch(style: .floating) {
             Text("Rapid Test")

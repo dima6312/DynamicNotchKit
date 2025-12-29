@@ -43,57 +43,67 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             .onHover(perform: dynamicNotch.updateHoverState)
     }
 
+    /// Height of the compact indicators row including padding.
+    private var indicatorsRowHeight: CGFloat {
+        dynamicNotch.notchSize.height + 20 // frame height + vertical padding
+    }
+
     private func notchContent() -> some View {
         VStack(spacing: 0) {
             // Always render the row to maintain stable view identity during rapid transitions.
-            // Control visibility via frame height instead of conditional rendering.
+            // Use explicit height and opacity - animation applied at VStack level for smooth resize.
             compactIndicatorsRow()
-                .frame(height: dynamicNotch.isHybridModeEnabled ? nil : 0, alignment: .top)
+                .frame(height: dynamicNotch.isHybridModeEnabled ? indicatorsRowHeight : 0)
+                .opacity(dynamicNotch.isHybridModeEnabled ? 1 : 0)
                 .clipped()
 
             dynamicNotch.expandedContent
                 .transition(.blur(intensity: 10).combined(with: .opacity))
                 // Only add top inset when NOT in hybrid mode (indicators row provides spacing)
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    Color.clear.frame(height: dynamicNotch.isHybridModeEnabled ? 0 : safeAreaInset)
+                    Color.clear
+                        .frame(height: dynamicNotch.isHybridModeEnabled ? 0 : safeAreaInset)
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: safeAreaInset) }
                 .safeAreaInset(edge: .leading, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
                 .safeAreaInset(edge: .trailing, spacing: 0) { Color.clear.frame(width: safeAreaInset) }
         }
         .fixedSize()
+        // Apply animation at the container level so that .fixedSize() resizes smoothly
+        .animation(dynamicNotch.style.conversionAnimation, value: dynamicNotch.isHybridModeEnabled)
+    }
+
+    /// Compact icon size for the floating indicators row.
+    private var compactIconSize: CGFloat {
+        dynamicNotch.notchSize.height - 12 // Account for top (4pt) and bottom (8pt) insets
     }
 
     /// Row with compact indicators and optional center content for hybrid mode.
-    /// The center content is only visible in floating mode (hidden by notch in notch mode).
+    /// The center content is only rendered in NotchlessView (floating mode), not in NotchView.
     @ViewBuilder
     private func compactIndicatorsRow() -> some View {
         HStack(spacing: 0) {
             // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
+            // Use explicit frame to constrain icon size within the row
             dynamicNotch.compactLeadingContent
                 .environment(\.notchSection, .compactLeading)
-                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
-                .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
-                .fixedSize()
-                .layoutPriority(1)
+                .frame(width: compactIconSize, height: compactIconSize)
                 .opacity(dynamicNotch.disableCompactLeading ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactLeading)
 
-            Spacer()
+            Spacer(minLength: 0)
 
             // Center content - visible in floating fallback, hidden by notch in notch mode
             dynamicNotch.compactCenterContent
                 .environment(\.notchSection, .compactCenter)
 
-            Spacer()
+            Spacer(minLength: 0)
 
             // Always render but hide if disabled - avoids SwiftUI conditional rendering issues
+            // Use explicit frame to constrain icon size within the row
             dynamicNotch.compactTrailingContent
                 .environment(\.notchSection, .compactTrailing)
-                .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 4) }
-                .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 8) }
-                .fixedSize()
-                .layoutPriority(1)
+                .frame(width: compactIconSize, height: compactIconSize)
                 .opacity(dynamicNotch.disableCompactTrailing ? 0 : 1)
                 .accessibilityHidden(dynamicNotch.disableCompactTrailing)
         }
