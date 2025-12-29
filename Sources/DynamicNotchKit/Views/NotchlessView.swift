@@ -89,6 +89,7 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
                     .transition(.blur(intensity: 10).combined(with: .scale(x: 0, anchor: .leading)).combined(with: .opacity))
             }
         }
+        .frame(height: dynamicNotch.notchSize.height)
         .padding(.horizontal, safeAreaInset)
         .padding(.vertical, 10)
     }

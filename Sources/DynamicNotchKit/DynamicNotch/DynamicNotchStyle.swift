@@ -78,6 +78,12 @@ public enum DynamicNotchStyle: Sendable {
     var conversionAnimation: Animation {
         .snappy(duration: 0.4)
     }
+
+    /// The duration of animations in seconds.
+    /// Used internally to coordinate async operations with animation completion.
+    var animationDuration: TimeInterval {
+        0.4
+    }
 }
 
 extension DynamicNotchStyle: Equatable {

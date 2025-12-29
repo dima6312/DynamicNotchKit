@@ -85,9 +85,10 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// shows below. Defaults to `false` for backwards compatibility.
     @Published public var showCompactContentInExpandedMode: Bool = false
 
-    /// Internal flag set when floating mode auto-enables hybrid layout.
+    /// Internal flag set when floating mode auto-enables hybrid layout during `compact()` calls.
     /// This avoids mutating the user-facing `showCompactContentInExpandedMode` property.
-    @Published var floatingHybridModeActive: Bool = false
+    /// The flag is automatically reset to `false` in `hide()` to prevent persistence across show/hide cycles.
+    @Published private(set) var floatingHybridModeActive: Bool = false
 
     /// Whether hybrid mode is effectively enabled (user setting OR floating fallback).
     var isHybridModeEnabled: Bool {
@@ -101,6 +102,11 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     @Published public private(set) var isHovering: Bool = false
 
     private var closePanelTask: Task<(), Never>? // Used to close the panel after hiding completes
+    private var screenObserverTask: Task<Void, Never>? // Observes screen parameter changes
+
+    /// Maximum number of retries when waiting for hover to end before hiding.
+    /// Prevents infinite loops if hover state gets stuck (5 seconds max at 0.1s intervals).
+    private var maxHideRetries: Int { 50 }
 
     /// Creates a new DynamicNotch with custom content and style.
     /// - Parameters:
@@ -152,14 +158,24 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
 
     /// Observes screen parameters changes and re-initializes the window if necessary.
     private func observeScreenParameters() {
-        Task {
+        screenObserverTask = Task { [weak self] in
             let sequence = NotificationCenter.default.notifications(named: NSApplication.didChangeScreenParametersNotification)
             for await _ in sequence.map(\.name) {
+                guard let self else { return }
+                // Only reinitialize when hidden to avoid disrupting active animations
+                guard await MainActor.run(body: { self.state == .hidden }) else { continue }
                 if let screen = NSScreen.screens.first {
-                    initializeWindow(screen: screen)
+                    await MainActor.run {
+                        self.initializeWindow(screen: screen)
+                    }
                 }
             }
         }
+    }
+
+    deinit {
+        screenObserverTask?.cancel()
+        closePanelTask?.cancel()
     }
 
     /// Updates the hover state of the DynamicNotch, and processes necessary hover behavior.
@@ -185,25 +201,24 @@ extension DynamicNotch {
     }
 
     func _expand(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool) async {
-        guard state != .expanded else { return }
+        // Reset floating hybrid mode when explicitly expanding
+        // (compact indicators should only show when compact() is called)
+        // This must happen even if already expanded (e.g., after floating fallback compact())
+        floatingHybridModeActive = false
+
+        guard state != .expanded else {
+            closePanelTask?.cancel() // Cancel any pending close operation
+            return
+        }
 
         closePanelTask?.cancel()
         if state == .hidden || windowController?.window?.screen != screen {
             initializeWindow(screen: screen)
         }
 
-        Task { @MainActor in
+        await MainActor.run {
             if state != .hidden {
-                if !skipHide {
-                    withAnimation(style.closingAnimation) {
-                        self.state = .hidden
-                    }
-
-                    guard self.state == .hidden else { return }
-
-                    try? await Task.sleep(for: .seconds(0.25))
-                }
-
+                // Direct transition from compact to expanded (consistent with expanded->compact)
                 withAnimation(style.conversionAnimation) {
                     self.state = .expanded
                 }
@@ -214,9 +229,8 @@ extension DynamicNotch {
             }
         }
 
-        // This is the time it takes for the animation to complete
-        // See DynamicNotchStyle's animations
-        try? await Task.sleep(for: .seconds(0.4))
+        // Wait for animation to complete
+        try? await Task.sleep(for: .seconds(style.animationDuration))
     }
 
     public func compact(on screen: NSScreen = NSScreen.screens[0]) async {
@@ -224,27 +238,41 @@ extension DynamicNotch {
     }
 
     func _compact(on screen: NSScreen = NSScreen.screens[0], skipHide: Bool) async {
-        guard state != .compact else { return }
+        guard state != .compact else {
+            closePanelTask?.cancel() // Cancel any pending close operation
+            return
+        }
 
         if effectiveStyle(for: screen).isFloating {
             // Floating mode has no physical notch to flank with compact content.
             // Instead, expand with hybrid mode to show compact indicators alongside content.
             // Use internal flag to avoid mutating user-configured showCompactContentInExpandedMode.
 
+            closePanelTask?.cancel() // Cancel any pending close operation
+
             // If already expanded, just enable hybrid mode with animation and return
-            if state == .expanded {
-                await MainActor.run {
-                    withAnimation(style.conversionAnimation) {
-                        floatingHybridModeActive = true
+            // Check state atomically and only animate if not already in hybrid mode
+            let (isExpanded, alreadyHybrid) = await MainActor.run {
+                (state == .expanded, floatingHybridModeActive)
+            }
+
+            if isExpanded {
+                // Only animate if not already in hybrid mode
+                if !alreadyHybrid {
+                    await MainActor.run {
+                        withAnimation(style.conversionAnimation) {
+                            floatingHybridModeActive = true
+                        }
                     }
+                    try? await Task.sleep(for: .seconds(style.animationDuration))
                 }
-                // Wait for animation to complete (matches pattern in _expand/_compact)
-                try? await Task.sleep(for: .seconds(0.4))
                 return
             }
 
             // Otherwise, enable hybrid mode and expand
-            floatingHybridModeActive = true
+            await MainActor.run {
+                floatingHybridModeActive = true
+            }
             await _expand(on: screen, skipHide: skipHide)
             return
         }
@@ -259,7 +287,7 @@ extension DynamicNotch {
             initializeWindow(screen: screen)
         }
 
-        Task { @MainActor in
+        await MainActor.run {
             if state != .hidden {
                 // Direct transition from expanded to compact (no hide step)
                 withAnimation(style.conversionAnimation) {
@@ -272,9 +300,8 @@ extension DynamicNotch {
             }
         }
 
-        // This is the time it takes for the animation to complete
-        // See DynamicNotchStyle's animations
-        try? await Task.sleep(for: .seconds(0.4))
+        // Wait for animation to complete
+        try? await Task.sleep(for: .seconds(style.animationDuration))
     }
 
     public func hide() async {
@@ -286,21 +313,27 @@ extension DynamicNotch {
     }
 
     /// Hides the popup, with a completion handler when the animation is completed.
-    func _hide(completion: (() -> ())? = nil) {
+    /// - Parameters:
+    ///   - completion: Called when the hide operation completes (whether successful or cancelled).
+    ///   - retryCount: Internal counter for hover retries. Do not set externally.
+    func _hide(completion: (() -> ())? = nil, retryCount: Int = 0) {
         guard state != .hidden else {
             completion?()
             return
         }
 
-        // Reset floating hybrid mode flag so it doesn't persist across show/hide cycles
-        floatingHybridModeActive = false
-
+        // If hover is preventing hide, retry with a limit to prevent infinite loops
         if hoverBehavior.contains(.keepVisible), isHovering {
-            Task {
-                try? await Task.sleep(for: .seconds(0.1))
-                _hide(completion: completion)
+            if retryCount >= maxHideRetries {
+                // Timeout: force hide despite hover to prevent stuck state
+                // This is a safety mechanism - should rarely be triggered
+            } else {
+                Task {
+                    try? await Task.sleep(for: .seconds(0.1))
+                    _hide(completion: completion, retryCount: retryCount + 1)
+                }
+                return
             }
-            return
         }
 
         withAnimation(style.closingAnimation) {
@@ -310,7 +343,16 @@ extension DynamicNotch {
 
         closePanelTask?.cancel()
         closePanelTask = Task {
-            try? await Task.sleep(for: .seconds(0.4)) // Wait for animation to complete
+            do {
+                try await Task.sleep(for: .seconds(style.animationDuration))
+            } catch {
+                // Task was cancelled - still need to complete
+            }
+
+            // Reset floating hybrid mode flag AFTER animation completes
+            // This prevents visual glitch where indicators disappear before the window closes
+            floatingHybridModeActive = false
+
             // Only deinitialize if not cancelled (a new window may have been opened)
             if !Task.isCancelled {
                 deinitializeWindow()

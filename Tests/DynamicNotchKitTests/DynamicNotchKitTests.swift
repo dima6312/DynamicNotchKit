@@ -302,14 +302,37 @@ struct DynamicNotchKitTests {
                 .foregroundStyle(.red)
         }
 
-        await notch.expand()
-        try await Task.sleep(for: .seconds(3))
+        // Set center content for floating mode (visible between leading/trailing icons)
+        notch.compactCenterContent = AnyView(
+            Text("Hybrid Mode")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        )
 
-        // Transition to compact - on floating style, this enables hybrid mode and expands
+        // Verify initial state
+        #expect(notch.showCompactContentInExpandedMode == true, "User setting should be true")
+        #expect(notch.isHybridModeEnabled == true, "Hybrid mode should be enabled via user setting")
+
+        await notch.expand()
+        #expect(notch.state == .expanded, "State should be expanded after expand()")
+        #expect(notch.isHybridModeEnabled == true, "Hybrid mode should remain enabled in expanded state")
+        try await Task.sleep(for: .seconds(2))
+
+        // Transition to compact - behavior differs by style
         await notch.compact()
+        if style.isFloating {
+            // Floating style stays expanded with hybrid mode
+            #expect(notch.state == .expanded, "Floating style should stay expanded after compact()")
+            #expect(notch.isHybridModeEnabled == true, "Hybrid mode should be enabled")
+        } else {
+            // Notch style goes to actual compact state
+            #expect(notch.state == .compact, "Notch style should be in compact state")
+            #expect(notch.isHybridModeEnabled == true, "Hybrid mode should still be enabled from user setting")
+        }
         try await Task.sleep(for: .seconds(2))
 
         await notch.hide()
+        #expect(notch.state == .hidden, "State should be hidden after hide()")
     }
 
     // MARK: - Floating Fallback (compact() auto-enables hybrid mode)
@@ -338,20 +361,112 @@ struct DynamicNotchKitTests {
                 .foregroundStyle(.red)
         }
 
+        // Set center content for floating fallback (visible between leading/trailing icons)
+        notch.compactCenterContent = AnyView(
+            Text("Fallback Mode")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        )
+
+        // Verify initial state - user setting is false, internal flag is false
+        #expect(notch.showCompactContentInExpandedMode == false, "User setting should default to false")
+        #expect(notch.floatingHybridModeActive == false, "Internal flag should start as false")
+        #expect(notch.isHybridModeEnabled == false, "Hybrid mode should not be enabled initially")
+
         // Start expanded (no hybrid mode yet)
         await notch.expand()
+        #expect(notch.state == .expanded, "State should be expanded after expand()")
+        #expect(notch.isHybridModeEnabled == false, "Hybrid mode should not be enabled after expand()")
         try await Task.sleep(for: .seconds(2))
 
         // Call compact() - on floating, this should:
-        // 1. NOT hide the window
+        // 1. NOT hide the window (state stays expanded)
         // 2. Auto-enable hybrid mode via internal flag
         // 3. Show compact indicators alongside expanded content
         await notch.compact()
-        try await Task.sleep(for: .seconds(3))
-
-        // Verify: user-facing property should NOT be mutated
-        // (floatingHybridModeActive is internal, showCompactContentInExpandedMode stays false)
+        #expect(notch.state == .expanded, "State should remain expanded, NOT switch to compact or hidden")
+        #expect(notch.floatingHybridModeActive == true, "Internal hybrid flag should be set")
+        #expect(notch.showCompactContentInExpandedMode == false, "User property should NOT be mutated")
+        #expect(notch.isHybridModeEnabled == true, "Hybrid mode should be enabled via internal flag")
+        try await Task.sleep(for: .seconds(2))
 
         await notch.hide()
+        #expect(notch.state == .hidden, "State should be hidden after hide()")
+        // Note: floatingHybridModeActive is reset AFTER animation completes in closePanelTask
+        try await Task.sleep(for: .seconds(0.5)) // Wait for animation to complete
+        #expect(notch.floatingHybridModeActive == false, "Internal flag should reset after hide()")
+    }
+
+    // MARK: - Hybrid Mode Reset Tests
+
+    @Test("DynamicNotch - floatingHybridModeActive resets on explicit expand()", .tags(.floatingStyle))
+    func dynamicNotchHybridModeResetOnExpand() async throws {
+        let notch = DynamicNotch(style: .floating) {
+            Text("Test")
+        } compactLeading: {
+            Image(systemName: "circle")
+        } compactTrailing: {
+            Image(systemName: "square")
+        }
+
+        // Enable hybrid mode via compact()
+        await notch.expand()
+        await notch.compact()
+        #expect(notch.floatingHybridModeActive == true, "Hybrid mode should be active after compact()")
+        #expect(notch.isHybridModeEnabled == true)
+
+        // Calling expand() should reset the flag
+        await notch.expand()
+        #expect(notch.floatingHybridModeActive == false, "Hybrid mode should reset on explicit expand()")
+        #expect(notch.isHybridModeEnabled == false, "Hybrid mode should be disabled")
+
+        await notch.hide()
+    }
+
+    @Test("DynamicNotch - isHybridModeEnabled computed property logic", .tags(.notchStyle))
+    func dynamicNotchHybridModeComputedProperty() async throws {
+        // Test with user setting = true
+        let notch1 = DynamicNotch(
+            style: .notch,
+            showCompactContentInExpandedMode: true
+        ) { Text("Test") }
+        #expect(notch1.isHybridModeEnabled == true, "Should be enabled via user setting")
+
+        // Test with user setting = false (default)
+        let notch2 = DynamicNotch(style: .floating) {
+            Text("Test")
+        } compactLeading: {
+            Image(systemName: "circle")
+        }
+        #expect(notch2.isHybridModeEnabled == false, "Should be disabled by default")
+
+        // Enable via floating fallback
+        await notch2.expand()
+        await notch2.compact()
+        #expect(notch2.isHybridModeEnabled == true, "Should be enabled via internal flag")
+        #expect(notch2.showCompactContentInExpandedMode == false, "User setting should remain false")
+
+        await notch2.hide()
+    }
+
+    @Test("DynamicNotch - Rapid state transitions don't crash", .tags(.floatingStyle))
+    func dynamicNotchRapidStateTransitions() async throws {
+        let notch = DynamicNotch(style: .floating) {
+            Text("Rapid Test")
+        } compactLeading: {
+            Image(systemName: "circle")
+        } compactTrailing: {
+            Image(systemName: "square")
+        }
+
+        // Rapid fire state changes - should complete without crashes
+        for _ in 0..<5 {
+            await notch.expand()
+            await notch.compact()
+            await notch.expand()
+            await notch.hide()
+        }
+
+        #expect(notch.state == .hidden, "Should end in hidden state")
     }
 }
